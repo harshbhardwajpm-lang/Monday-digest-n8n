@@ -1,0 +1,307 @@
+{
+  "name": "Monday Digest (Starter)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "d10efa32-f4b0-4860-9f13-47881dfb68d3",
+      "name": "Every Monday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -384,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "34.16"
+            },
+            {
+              "name": "longitude",
+              "value": "77.58"
+            },
+            {
+              "name": "current",
+              "value": "temperature_2m"
+            },
+            {
+              "name": "daily",
+              "value": "temperature_2m_max,precipitation_sum"
+            },
+            {
+              "name": "timezone",
+              "value": "Asia/Kolkata"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7f91829-f890-4cc2-ac50-9b76b4d52f9f",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1xqsqmEBQ2F3oP_nUKHN01yw7LHyQhPCFaMPBZgsrUZY",
+          "mode": "list",
+          "cachedResultName": "Wanderline Enquiries",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xqsqmEBQ2F3oP_nUKHN01yw7LHyQhPCFaMPBZgsrUZY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 636805726,
+          "mode": "list",
+          "cachedResultName": "Enquiries",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xqsqmEBQ2F3oP_nUKHN01yw7LHyQhPCFaMPBZgsrUZY/edit#gid=636805726"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "detectAutomatically"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        160,
+        -80
+      ],
+      "id": "565baf11-cc4f-4f37-b5a7-66c5ebcebfc3",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "NuWHLBHlhDnrHM9f",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "73ea275a-fe41-4946-a5a5-8e5a0df4511c",
+              "leftValue": "={{ $json.Date }}",
+              "rightValue": "={{ $now.minus({days: 7}) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        -80
+      ],
+      "id": "6e87c4c8-89ac-456a-aaed-4bd1607a0ba9",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -80
+      ],
+      "id": "0a8d4d9d-1e20-4168-8fd3-3acc793f331e",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write Farah a short Monday digest of last week's enquiries for Wanderline Travel.\n\nEnquiries (JSON, each has Date, Name, Email, Message, Enquiry Type):\n{{ JSON.stringify($json.data) }}\n\nLeh weather:\n- Now: {{ $('HTTP Request').item.json.current.temperature_2m }} C\n- Dates: {{ $('HTTP Request').item.json.daily.time.join(', ') }}\n- Max temperature on those dates (C): {{ $('HTTP Request').item.json.daily.temperature_2m_max.join(', ') }}\n- Rain on those dates (mm): {{ $('HTTP Request').item.json.daily.precipitation_sum.join(', ') }}\n\nWrite in plain text, under 180 words:\n1. One line with the count of enquiries by type (Bulk Booking, Complaint, Other). Leave Spam out of everything.\n2. One bullet per Bulk Booking and Complaint: the name and a one-line summary.\n3. Weather: if any day shows rain or a sharp temperature drop, start this line with \"WEATHER WARNING:\" and name the day. Otherwise, one line saying conditions look fine for treks.\nDo not invent anything that is not in the data.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        752,
+        -80
+      ],
+      "id": "2e978506-ec8b-44dc-96df-dd6149ea88bc",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        128
+      ],
+      "id": "ac4fd2f0-0f1a-4fd8-b3c8-42c9f023c602",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "15hZrXWm52RGuub1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "harshbhardwajj89@gmail.com",
+        "subject": "Enquiries and Temperature",
+        "message": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        192
+      ],
+      "id": "e18bc90c-390f-4e95-932c-23f6ea8763ce",
+      "name": "Send a message",
+      "webhookId": "06eb0581-7275-4a52-9235-bb6714b290f5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yihiYIQ8KFGKeKCu",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Monday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "614ac2a2-3bd5-4f9d-a343-4955d669d4a9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e84dc2d1bf95d5c0c0486e1b92e1af1a02bb89ee78a8424cbbd45e2c8c4a622"
+  },
+  "nodeGroups": [],
+  "id": "RuhK9Zj29hxfoULT",
+  "tags": []
+}
